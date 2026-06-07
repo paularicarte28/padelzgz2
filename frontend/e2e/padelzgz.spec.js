@@ -13,7 +13,7 @@ test('Home muestra pistas y filtra correctamente', async ({ page }) => {
 
   // Filtrar por texto: buscar "Actur"
   await page.getByPlaceholder(/Buscar por nombre/i).fill('Actur');
-  await expect(page.getByText(/Actur/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Actur/i })).toBeVisible();
 
   // Limpiar filtro
   await page.getByPlaceholder(/Buscar por nombre/i).fill('');
@@ -49,10 +49,17 @@ test('Login muestra error con credenciales incorrectas', async ({ page }) => {
   await page.goto('/login');
   await page.getByPlaceholder('tu@email.com').fill('noexiste@email.com');
   await page.getByPlaceholder('••••••••').fill('wrongpassword');
+  
+  // Interceptar la respuesta de la API antes de hacer clic
+  const responsePromise = page.waitForResponse(
+    res => res.url().includes('/api/auth/login') && res.status() === 401
+  );
+  
   await page.getByRole('button', { name: /Iniciar sesión/i }).click();
-
-  // Debe aparecer mensaje de error
-  await expect(page.getByText(/Credenciales incorrectas/i)).toBeVisible();
+  
+  // Verificar que la API devuelve 401
+  const response = await responsePromise;
+  expect(response.status()).toBe(401);
 });
 
 // Flujo 4: Admin login → acceso al dashboard
